@@ -44,10 +44,14 @@ public class DownloadBlobFileJSInterface {
         if (fileName.endsWith(".jpg")){
             mypath = String.valueOf(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM));
         }
-        File gifFile = new File(mypath + "/" + fileName);
+        File dir = new File(mypath+ "/MarkdownEditor/");
+        if (!dir.exists()) {
+            dir.mkdir();
+        }
+        File gifFile = new File(mypath + "/MarkdownEditor/" + fileName);
         int a = 1;
         while (gifFile.exists()) {
-            gifFile = new File(mypath + "/" + a + "_" + fileName);
+            gifFile = new File(mypath + "/MarkdownEditor/" + a + "_" + fileName);
             a++;
         }
         saveGifToPath(base64, gifFile);
