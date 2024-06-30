@@ -8,6 +8,7 @@ import android.widget.Toast;
 
 import java.io.File;
 import java.io.FileOutputStream;
+import java.util.HashSet;
 
 public class DownloadBlobFileJSInterface {
     private static String mimeType = "";
@@ -40,7 +41,11 @@ public class DownloadBlobFileJSInterface {
 
     private void convertToGifAndProcess(String base64) {
         File gifFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + "/" + fileName);
-
+        int a = 1;
+        while (gifFile.exists()) {
+            gifFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + "/" + a + "_" + fileName);
+            a++;
+        }
         saveGifToPath(base64, gifFile);
         Toast.makeText(mContext, "保存成功"+gifFile, Toast.LENGTH_SHORT).show();
         if (mDownloadGifSuccessListener != null) {
