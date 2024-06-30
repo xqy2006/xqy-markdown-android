@@ -324,7 +324,6 @@ export default {
             this.htmldown = false
         },
         up_md() {
-            this.mdup = true
 
             var reader = new FileReader();
             reader.readAsText(this.$refs.mdfile.files[0])
