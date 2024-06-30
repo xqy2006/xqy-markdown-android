@@ -1,11 +1,13 @@
 package com.xuqinyang.md;
 
 import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Environment;
 import android.util.Base64;
 import android.webkit.JavascriptInterface;
 import android.widget.Toast;
-
+import android.content.Context;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.HashSet;
@@ -55,6 +57,7 @@ public class DownloadBlobFileJSInterface {
             a++;
         }
         saveGifToPath(base64, gifFile);
+        mContext.sendBroadcast(new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE, Uri.fromFile(gifFile)));
         Toast.makeText(mContext, "保存成功"+gifFile, Toast.LENGTH_SHORT).show();
         if (mDownloadGifSuccessListener != null) {
             mDownloadGifSuccessListener.downloadGifSuccess(gifFile.getAbsolutePath());
