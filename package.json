@@ -22,7 +22,8 @@
     "markdown-it-task-lists": "^2.1.1",
     "markdown-it-texmath": "^1.0.0",
     "scss": "^0.2.4",
-    "vue": "^3.2.37"
+    "vue": "^3.2.37",
+    "vue-cookies": "^1.8.4"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^3.0.0",

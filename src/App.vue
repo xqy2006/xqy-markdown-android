@@ -73,7 +73,7 @@
         </div>
     </div>
 </div>
-<div class="Box Box--blue" style="margin-inline-start: 15px;margin-inline-end: 15px;margin-top: 15px;">
+<div class="Box" style="margin-inline-start: 15px;margin-inline-end: 15px;margin-top: 15px;">
     <div class="Box-header">
         <b>预览：</b>
     </div>
@@ -191,6 +191,7 @@ import mk from 'markdown-it-texmath'
 import katex from 'katex'
 import footnote from 'markdown-it-footnote'
 import github from './github.css?raw'
+import cookies from "vue-cookies";
 export default {
     data() {
         return {
@@ -207,7 +208,21 @@ export default {
     },
     created() {
     window.get_filename = this.get_filename;
+    if (localStorage.getItem('mdtext')!=null){
+    this.mdtext = localStorage.getItem('mdtext')}
+    if (localStorage.getItem('filename')!=null){
+    this.filename = localStorage.getItem('filename')}
   },
+    watch: {
+        mdtext(new1,old1){
+            localStorage.setItem('mdtext', new1)
+            cookies.set('mdtext', new1)
+},
+       filename(new1,old1){
+            localStorage.setItem('filename', new1)
+            cookies.set('filename', new1)
+},
+},
     methods: {
         get_filename(){
             return this.filename
