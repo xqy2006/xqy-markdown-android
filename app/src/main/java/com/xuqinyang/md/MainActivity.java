@@ -110,6 +110,9 @@ public class MainActivity extends Activity {
                     // 3. 执行JS
                     mWebView.evaluateJavascript("javascript:get_filename()", new ValueCallback<String>(){
                         public void onReceiveValue(String value) {
+                            if (value.replace("\"","").trim().length() == 0) {
+                                value = "\"untitled\"";
+                            }
                             mWebView.loadUrl(DownloadBlobFileJSInterface.getBase64StringFromBlobUrl(url, mimetype, value.replace("\"","")+fileName.replace(".bin",".pdf").replace(".txt",".md").substring(fileName.lastIndexOf('.'))));
                         }
                         });
