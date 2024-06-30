@@ -40,10 +40,14 @@ public class DownloadBlobFileJSInterface {
     }
 
     private void convertToGifAndProcess(String base64) {
-        File gifFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + "/" + fileName);
+        String mypath = String.valueOf(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS));
+        if (fileName.endsWith(".jpg")){
+            mypath = String.valueOf(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM));
+        }
+        File gifFile = new File(mypath + "/" + fileName);
         int a = 1;
         while (gifFile.exists()) {
-            gifFile = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS) + "/" + a + "_" + fileName);
+            gifFile = new File(mypath + "/" + a + "_" + fileName);
             a++;
         }
         saveGifToPath(base64, gifFile);
