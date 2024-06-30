@@ -57,6 +57,8 @@ public class MainActivity extends Activity {
         if (requestCode == FILECHOOSER_RESULTCODE) {
 
             if (null == mUploadMessage || intent == null || resultCode != RESULT_OK) {
+                mUploadMessage.onReceiveValue(null);
+                mUploadMessage = null;
                 return;
             }
 
