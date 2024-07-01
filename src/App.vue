@@ -32,21 +32,25 @@
             <td><button class="btn btn-invisible btn-sm" @click="title()">标题</button></td>
             <td><button class="btn btn-invisible btn-sm" @click="add1('\n\`\`\`\n')">代码块</button></td>
             <td><button class="btn btn-invisible btn-sm" @click="add1('\`')">单行代码</button></td>
-            <td><button class="btn btn-invisible btn-sm" @click="add4(' $','$ ')">Tex公式</button></td>
+            <td><button class="btn btn-invisible btn-sm" @click="add4('![](',')')">img</button></td>
             <td><button class="btn btn-invisible btn-sm" @click="add2('> ')">引用</button></td>
             <td><button class="btn btn-invisible btn-sm" @click="add2('- ')">无序列表</button></td>
             <td><button class="btn btn-invisible btn-sm" @click="add2('- [ ] ')">任务列表</button></td>
+            <td><button class="btn btn-invisible btn-sm" @click="add3('[[TOC]]')">目录</button></td>
+            <td><button class="btn btn-invisible btn-sm" @click="add3('------')">分割线</button></td>
+            <td><button class="btn btn-invisible btn-sm" @click="add4(' $','$ ')">Tex公式</button></td>
+            <td><button class="btn btn-invisible btn-sm" v-if="!tex" @click="opentex()">显示Tex工具箱</button></td>
+            <td><button class="btn btn-invisible btn-sm" v-if="tex" @click="closetex()">隐藏Tex工具箱</button></td>
+        </span>
+        <span class="BtnGroup d-block" style="margin-top: 5px;margin-inline-start: 15px;white-space:nowrap;overflow-x: auto;overflow-y: hidden;">
             <td><button class="btn btn-invisible btn-sm" @click="add1('**')">粗体</button></td>
             <td><button class="btn btn-invisible btn-sm" @click="add1('*')">斜体</button></td>
             <td><button class="btn btn-invisible btn-sm" @click="add4('<u>','</u>')">下划线</button></td>
             <td><button class="btn btn-invisible btn-sm" @click="add4('<font color=\x22red\x22>','</font>')">标红</button></td>
             <td><button class="btn btn-invisible btn-sm" @click="add4('<mark>','</mark>')">高亮</button></td>
             <td><button class="btn btn-invisible btn-sm" @click="add1('~~')">删除线</button></td>
-            <td><button class="btn btn-invisible btn-sm" @click="add4('![](',')')">img</button></td>
-            <td><button class="btn btn-invisible btn-sm" @click="add3('[[TOC]]')">目录</button></td>
-            <td><button class="btn btn-invisible btn-sm" @click="add3('------')">分割线</button></td>
         </span>
-        <span class="BtnGroup d-block" style="margin-top: 5px;margin-inline-start: 15px;white-space:nowrap;overflow-x: auto;overflow-y: hidden;">
+        <span class="BtnGroup d-block" v-if="tex" style="margin-top: 5px;margin-inline-start: 15px;white-space:nowrap;overflow-x: auto;overflow-y: hidden;">
             <td><button class="btn btn-invisible btn-sm" @click="add4('+','')">加号</button></td>
             <td><button class="btn btn-invisible btn-sm" @click="add4('-','')">减号</button></td>
             <td><button class="btn btn-invisible btn-sm" @click="add4('\\cdot','')">点乘</button></td>
@@ -204,6 +208,7 @@ export default {
             mdup: false,
             count: 0,
             sum:1,
+            tex:false,
         }
     },
     created() {
@@ -429,6 +434,12 @@ export default {
                 this.$refs.input.selectionStart = oldlocs + str1.length
                 this.$refs.input.selectionEnd = oldloc + str1.length
             })
+        },
+        opentex() {
+            this.tex = true
+        },
+        closetex() {
+            this.tex = false
         },
         title() {
             const oldlocs = this.$refs.input.selectionStart
