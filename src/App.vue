@@ -17,6 +17,9 @@
             导出jpg
         </button>
         <button v-if="jpgdown" style="margin-inline-start: 15px;" class="btn btn-primary btn-sm" aria-disabled="true"><span>Loading</span><span class="AnimatedEllipsis"></span></button></td>
+        <td><button style="margin-inline-start: 15px;" class="btn btn-danger btn-sm" @click="clearAllContent()" title="清除文件名和内容">
+            清除内容
+        </button></td>
 
 </div>
 <span class="Progress" v-if="pdfdown" style="margin-top: 10px;margin-inline-start: 15px;margin-inline-end: 15px;">
@@ -135,11 +138,6 @@ code {
     word-wrap: break-word !important;
 }
 
-ol li {
-    border-left: 1px solid #c5c5c5;
-    color: #6e7781;
-}
-
 #buttons {
     padding: 0px;
 }
@@ -151,6 +149,13 @@ ol li {
 
 .github-corner:hover .octo-arm {
     animation: octocat-wave 560ms ease-in-out
+}
+
+/* 新增：紧凑的提示条样式 */
+.compact-flash {
+    padding: 8px 16px !important;
+    font-size: 14px;
+    line-height: 1.2;
 }
 
 @keyframes octocat-wave {
@@ -195,7 +200,7 @@ import mk from 'markdown-it-texmath'
 import katex from 'katex'
 import footnote from 'markdown-it-footnote'
 import github from './github.css?raw'
-import cookies from "vue-cookies";
+
 export default {
     data() {
         return {
@@ -207,102 +212,318 @@ export default {
             htmldown: false,
             mdup: false,
             count: 0,
-            sum:1,
+            sum: 1,
             tex:false,
+            autoSaveStatus: '', // 状态提示
+            autoSaveTimer: null, // 自动保存定时器
+            isInitializing: true, // 新增：标记是否正在初始化
         }
     },
-    created() {
-    window.get_filename = this.get_filename;
-    if (localStorage.getItem('mdtext')!=null){
-    this.mdtext = localStorage.getItem('mdtext')}
-    if (localStorage.getItem('filename')!=null){
-    this.filename = localStorage.getItem('filename')}
-  },
+    created(){
+        window.get_filename = this.get_filename;
+    },
+    // 添加生命周期钩子
+    mounted() {
+        this.loadFromStorage();
+        this.setupAutoSave();
+        
+        // 初始化完成后，开始监听变化
+        this.$nextTick(() => {
+            setTimeout(() => {
+                this.isInitializing = false;
+            }, 500); // 延迟500ms后开始监听变化
+        });
+    },
+
+    beforeUnmount() {
+        // 组件销毁前清除定时器
+        if (this.autoSaveTimer) {
+            clearTimeout(this.autoSaveTimer);
+        }
+    },
+
+    // 添加侦听器
     watch: {
-        mdtext(new1,old1){
-            localStorage.setItem('mdtext', new1)
-            cookies.set('mdtext', new1)
-},
-       filename(new1,old1){
-            localStorage.setItem('filename', new1)
-            cookies.set('filename', new1)
-},
-},
+        // 监听 mdtext 变化，自动保存
+        mdtext: {
+            handler() {
+                // 只在非初始化状态下触发保存
+                if (!this.isInitializing) {
+                    this.debouncedSave();
+                }
+            },
+            deep: true
+        },
+        // 监听 filename 变化，自动保存
+        filename: {
+            handler() {
+                // 只在非初始化状态下触发保存
+                if (!this.isInitializing) {
+                    this.debouncedSave();
+                }
+            }
+        }
+    },
+
     methods: {
         get_filename(){
             return this.filename
         },
-        to_pdf(length) {
-            this.count = 0;
-            //console.log(document.querySelectorAll(".markdown-body>div>*"));
-            var height = 0;
-            this.pdfdown = true
-            var pdf = new jsPDF('', 'pt', 'a4');
-            var position = 0;
-            var a = async (leftpage) => {
-                for (let i = 0; i < document.querySelectorAll(".markdown-body>div>*").length; i++) {
-                    this.sum = document.querySelectorAll(".markdown-body>div>*").length
-                    var e = document.querySelectorAll(".markdown-body>div>*")[i]
-                    var index = i
-                    var bot1 = Number(window.getComputedStyle(e, null).marginBottom.slice(0, window.getComputedStyle(e, null).marginBottom.length - 2))
-                    var top1 = Number(window.getComputedStyle(e, null).marginTop.slice(0, window.getComputedStyle(e, null).marginTop.length - 2))
-                    var canvas = await html2canvas(e, {
-                        logging: false,
-                        windowWidth: 1024,
-                        height:e.scrollHeight+bot1,
-                    })
-                    var top = top1 / canvas.width * 592.28
-                    var bot = bot1 / canvas.width * 592.28
-                    var imgData = canvas.toDataURL('image/jpeg', 1.0)
-                    var img = new Image();
-                    img.src = imgData;
-                    img.onload = async () => {
-                        if (height + canvas.height <= canvas.width / 592.28 * 841.89) {
-                            height += canvas.height
-                            pdf.addImage(imgData, 'JPEG', length, position, 595.28 - length * 2, (595.28) / canvas.width * canvas.height)
-                            position += canvas.height / canvas.width * 592.28
-                        } else {
-                            var canvasHeight = canvas.height
-                            var usecanvas = 0
-                            while (height + canvasHeight > canvas.width / 592.28 * 841.89) {
-                                var leftheight = canvas.width / 592.28 * 841.89 - height
-                                canvasHeight = canvasHeight - leftheight
-                                var newcanvas = document.createElement('canvas');
-                                newcanvas.width = canvas.width;
-                                newcanvas.height = leftheight;
-                                var newctx = newcanvas.getContext('2d');
-                                newctx.drawImage(img, 0, usecanvas, canvas.width, leftheight, 0, 0, canvas.width, leftheight);
-                                var newimgdata = newcanvas.toDataURL('image/jpeg', 1.0)
-                                pdf.addImage(newimgdata, 'JPEG', length, position, 595.28 - length * 2, (595.28) / newcanvas.width * newcanvas.height)
-                                pdf.addPage()
-                                usecanvas += leftheight
-                                height = 0
-                                position = 0
-                                //console.log(leftheight)
-                            }
-                            var newcanvas = document.createElement('canvas');
-                            newcanvas.width = canvas.width;
-                            newcanvas.height = canvas.height - usecanvas;
-                            var newctx = newcanvas.getContext('2d');
-                            newctx.drawImage(img, 0, usecanvas, canvas.width, canvas.height - usecanvas, 0, 0, canvas.width, canvas.height - usecanvas);
-                            height += canvasHeight 
-                            var newimgdata = newcanvas.toDataURL('image/jpeg', 1.0)
-                            pdf.addImage(newimgdata, 'JPEG', length, position, 595.28 - length * 2, (595.28) / newcanvas.width * newcanvas.height)
-                            position += newcanvas.height / canvas.width * 592.28
-                        }
-                        if (this.count == document.querySelectorAll(".markdown-body>div>*").length - 1) {
-                            let blob = pdf.output('blob')
-                            blob = blob.slice(0, blob.size, 'application/octet-stream')
-                            FileSaver.saveAs(blob, (this.filename || 'undefined') + '.pdf')
-                            this.pdfdown = false
-                        }
-                        this.count += 1;
-                        //window.open(pdf.output("bloburl", { filename: "xqy-markdown.pdf" }));
+        // 修改：从 localStorage 加载数据
+        loadFromStorage() {
+            try {
+                const savedData = localStorage.getItem('markdown-editor-data');
+                if (savedData) {
+                    const data = JSON.parse(savedData);
+                    this.mdtext = data.content || '';
+                    this.filename = data.filename || '';
+                    
+                    if (this.mdtext || this.filename) {
+                        this.showSaveStatus('已恢复上次编辑的内容');
                     }
+                }
+            } catch (error) {
+                console.warn('加载本地存储数据失败:', error);
+            }
+        },
 
+        // 修改：保存到 localStorage（不显示保存提示）
+        saveToStorage() {
+            try {
+                const dataToSave = {
+                    content: this.mdtext,
+                    filename: this.filename,
+                    lastSaved: new Date().toISOString()
+                };
+                
+                localStorage.setItem('markdown-editor-data', JSON.stringify(dataToSave));
+                // 移除：不再显示"已自动保存"提示
+            } catch (error) {
+                console.warn('保存到本地存储失败:', error);
+            }
+        },
+
+        // 修改：防抖保存（避免频繁保存）
+        debouncedSave() {
+            if (this.autoSaveTimer) {
+                clearTimeout(this.autoSaveTimer);
+            }
+            
+            this.autoSaveTimer = setTimeout(() => {
+                this.saveToStorage();
+            }, 1000); // 1秒后保存
+        },
+
+        // 设置自动保存
+        setupAutoSave() {
+            // 页面失去焦点时保存
+            window.addEventListener('beforeunload', () => {
+                this.saveToStorage();
+            });
+
+            // 页面可见性变化时保存
+            document.addEventListener('visibilitychange', () => {
+                if (document.hidden) {
+                    this.saveToStorage();
+                }
+            });
+        },
+
+        // 修改：显示状态提示（只用于加载提示）
+        showSaveStatus(message) {
+            this.autoSaveStatus = message;
+            
+            // 3秒后清除状态提示
+            setTimeout(() => {
+                this.autoSaveStatus = '';
+            }, 3000);
+        },
+
+        // 修改：清除所有内容（替换清除存储功能）
+        clearAllContent() {
+            if (confirm('确定要清除所有内容吗？这将清空文件名和Markdown内容。')) {
+                this.mdtext = '';
+                this.filename = '';
+                // 清除内容后会自动保存空内容
+            }
+        },
+        to_pdf(length = 20) {
+            this.pdfdown = true;
+            this.count = 0;
+            
+            const pdf = new jsPDF('', 'pt', 'a4');
+            const pageWidth = 595.28;  // A4宽度(pt)
+            const pageHeight = 841.89; // A4高度(pt)
+            const margin = length;
+            const pdfContentWidth = pageWidth - margin * 2;
+            
+            const processContentByPages = async () => {
+                const contentElement = this.$refs.md; // 整个markdown内容区域
+                const contentHeight = contentElement.scrollHeight;
+                
+                // 获取实际的DOM元素宽度（考虑不同设备）
+                const actualContentWidth = contentElement.offsetWidth;
+                
+                // 高质量截图设置
+                const scale = 2;
+                
+                // 计算每页在原始内容中对应的像素高度
+                // 基于实际内容宽度计算比例
+                const widthRatio = pdfContentWidth / actualContentWidth;
+                const pageHeightInPixels = pageHeight / widthRatio;
+                
+                // 计算总页数
+                const totalPages = Math.ceil(contentHeight / pageHeightInPixels);
+                this.sum = totalPages;
+                
+                console.log(`Content size: ${actualContentWidth}x${contentHeight}px`);
+                console.log(`Page height in pixels: ${pageHeightInPixels}px`);
+                console.log(`Total pages: ${totalPages}`);
+                
+                for (let pageIndex = 0; pageIndex < totalPages; pageIndex++) {
+                    // 计算当前页的截图区域
+                    const startY = pageIndex * pageHeightInPixels;
+                    const endY = Math.min(startY + pageHeightInPixels, contentHeight);
+                    const currentPageHeight = endY - startY;
+                    
+                    // 检查canvas大小限制
+                    const maxCanvasSize = 16000;
+                    let actualScale = scale;
+                    
+                    // 计算实际的canvas尺寸
+                    const canvasWidth = actualContentWidth * scale;
+                    const canvasHeight = currentPageHeight * scale;
+                    
+                    if (canvasWidth > maxCanvasSize || canvasHeight > maxCanvasSize) {
+                        // 计算安全的scale
+                        const scaleByWidth = maxCanvasSize / actualContentWidth;
+                        const scaleByHeight = maxCanvasSize / currentPageHeight;
+                        actualScale = Math.min(scaleByWidth, scaleByHeight, scale);
+                        
+                        console.warn(`Canvas size too large, reducing scale from ${scale} to ${actualScale}`);
+                    }
+                    
+                    try {
+                        // 截取当前页内容
+                        const canvas = await html2canvas(contentElement, {
+                            logging: false,
+                            scale: actualScale,
+                            width: actualContentWidth,
+                            height: currentPageHeight,
+                            x: 0,
+                            y: startY,
+                            useCORS: true,
+                            allowTaint: true,
+                            backgroundColor: '#ffffff',
+                            windowWidth: actualContentWidth,
+                            windowHeight: currentPageHeight
+                        });
+                        
+                        const imgData = canvas.toDataURL('image/jpeg', 0.98);
+                        
+                        // 添加到PDF（如果不是第一页，先添加新页）
+                        if (pageIndex > 0) {
+                            pdf.addPage();
+                        }
+                        
+                        // 直接使用PDF内容宽度，高度按比例计算
+                        const pdfImageHeight = (canvas.height / canvas.width) * pdfContentWidth;
+                        
+                        pdf.addImage(
+                            imgData, 'JPEG',
+                            margin, 0,
+                            pdfContentWidth, Math.min(pdfImageHeight, pageHeight)
+                        );
+                        
+                        this.count = pageIndex + 1;
+                        
+                        console.log(`Page ${pageIndex + 1}: Canvas ${canvas.width}x${canvas.height}, PDF ${pdfContentWidth}x${pdfImageHeight}`);
+                        
+                    } catch (error) {
+                        console.error(`Error rendering page ${pageIndex + 1}:`, error);
+                        
+                        // 如果仍然失败，尝试更小的片段
+                        if (currentPageHeight > maxCanvasSize / actualScale) {
+                            await this.renderOversizedPage(
+                                contentElement, startY, currentPageHeight, 
+                                pdf, margin, pdfContentWidth, pageIndex > 0, 
+                                actualContentWidth, actualScale
+                            );
+                        } else {
+                            // 添加错误页面
+                            if (pageIndex > 0) pdf.addPage();
+                            pdf.setFontSize(12);
+                            pdf.text(`Error rendering page ${pageIndex + 1}: ${error.message}`, margin, 50);
+                        }
+                    }
+                }
+                
+                // 保存PDF
+                const blob = pdf.output('blob');
+                const finalBlob = blob.slice(0, blob.size, 'application/octet-stream');
+                FileSaver.saveAs(finalBlob, (this.filename || 'undefined') + '.pdf');
+                this.pdfdown = false;
+            };
+            
+            processContentByPages().catch(error => {
+                console.error('PDF generation failed:', error);
+                this.pdfdown = false;
+                alert('PDF生成失败，请检查控制台了解详细信息');
+            });
+        },
+        
+        // 处理超大页面的方法
+        async renderOversizedPage(contentElement, startY, pageHeight, pdf, margin, pdfContentWidth, needNewPage, actualContentWidth, scale) {
+            const maxCanvasSize = 16000;
+            
+            // 计算每个片段的最大高度
+            const maxFragmentHeight = Math.floor(maxCanvasSize / scale);
+            const fragments = Math.ceil(pageHeight / maxFragmentHeight);
+            
+            console.log(`Splitting oversized page into ${fragments} fragments`);
+            
+            for (let i = 0; i < fragments; i++) {
+                const fragmentStartY = startY + i * maxFragmentHeight;
+                const fragmentEndY = Math.min(fragmentStartY + maxFragmentHeight, startY + pageHeight);
+                const currentFragmentHeight = fragmentEndY - fragmentStartY;
+                
+                if (needNewPage || i > 0) {
+                    pdf.addPage();
+                }
+                needNewPage = true;
+                
+                try {
+                    const canvas = await html2canvas(contentElement, {
+                        logging: false,
+                        scale: scale,
+                        width: actualContentWidth,
+                        height: currentFragmentHeight,
+                        x: 0,
+                        y: fragmentStartY,
+                        useCORS: true,
+                        allowTaint: true,
+                        backgroundColor: '#ffffff',
+                        windowWidth: actualContentWidth,
+                        windowHeight: currentFragmentHeight
+                    });
+                    
+                    const imgData = canvas.toDataURL('image/jpeg', 0.98);
+                    const pdfImageHeight = (canvas.height / canvas.width) * pdfContentWidth;
+                    
+                    pdf.addImage(
+                        imgData, 'JPEG',
+                        margin, 0,
+                        pdfContentWidth, Math.min(pdfImageHeight, 841.89)
+                    );
+                    
+                    console.log(`Fragment ${i + 1}: Canvas ${canvas.width}x${canvas.height}`);
+                    
+                } catch (error) {
+                    console.error(`Error rendering fragment ${i + 1}:`, error);
+                    pdf.setFontSize(12);
+                    pdf.text(`Error rendering content fragment ${i + 1}`, margin, 50);
                 }
             }
-            a(841.89)
         },
 
         to_jpg() {
